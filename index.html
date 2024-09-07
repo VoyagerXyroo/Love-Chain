@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Registry</title>
+</head>
+<body>
+    <h1>Word Registry</h1>
+    <div>
+        <p id="account">Connected Account: </p>
+        <input type="text" id="newWord" placeholder="Enter a word" />
+        <button id="addWordButton">Add Word</button>
+        <p id="status"></p>
+    </div>
+    <div>
+        <button id="loadWordsButton">Load Words</button>
+        <ul id="wordsList"></ul>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+
+    <script>
+        const CONTRACT_ADDRESS = '0x200caa62af8c1648de2b1fa6e6af9416c3bec735'; 
+        const CONTRACT_ABI = [
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "newWord",
+				"type": "string"
+			}
+		],
+		"name": "addWord",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "index",
+				"type": "uint256"
+			}
+		],
+		"name": "getWord",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getWordCount",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "owner",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "words",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+];
+
+        let provider;
+        let signer;
+        let contract;
+
+        async function connectWallet() {
+            if (window.ethereum) {
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                await provider.send('eth_requestAccounts', []);
+                signer = provider.getSigner();
+
+                const account = await signer.getAddress();
+                document.getElementById('account').innerText = `Connected Account: ${account}`;
+
+                contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+
+                console.log('MetaMask connected');
+            } else {
+                alert('MetaMask not found. Please install MetaMask.');
+            }
+        }
+
+        async function addWord() {
+            const word = document.getElementById('newWord').value;
+            if (word === "") {
+                alert("Please enter a word");
+                return;
+            }
+            try {
+                const tx = await contract.addWord(word);
+                document.getElementById('status').innerText = 'Adding word...';
+                await tx.wait(); 
+                document.getElementById('status').innerText = 'Word added successfully!';
+                document.getElementById('newWord').value = '';
+            } catch (error) {
+                console.error(error);
+                document.getElementById('status').innerText = 'Error adding word. See console for details.';
+            }
+        }
+
+        async function loadWords() {
+            try {
+                const wordCount = await contract.getWordCount();
+                const wordsList = document.getElementById('wordsList');
+                wordsList.innerHTML = '';
+
+                for (let i = 0; i < wordCount; i++) {
+                    const word = await contract.getWord(i);
+                    const li = document.createElement('li');
+                    li.textContent = word;
+                    wordsList.appendChild(li);
+                }
+            } catch (error) {
+                console.error(error);
+                document.getElementById('status').innerText = 'Error loading words. See console for details.';
+            }
+        }
+
+        document.getElementById('addWordButton').addEventListener('click', addWord);
+        document.getElementById('loadWordsButton').addEventListener('click', loadWords);
+
+        connectWallet();
+    </script>
+</body>
+</html>
